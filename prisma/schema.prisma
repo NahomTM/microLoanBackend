@@ -1,0 +1,150 @@
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id             Int       @id @default(autoincrement())
+  role           String
+  fullName       String?
+  email          String    @unique
+  password       String
+  address        String?
+  phoneNumber    String?
+  idFile         String?    // Path to identification file
+  bankStatement  String?    // Path to bank statement file
+  creditScore    Int
+  status         String
+  activeLoan     Boolean    @default(false)
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  // Relations
+  offers              Offer[]
+  borrowings          Borrowed[]
+  account             Account[]
+  transactionsSent    Transaction[] @relation("SenderTransactions")
+  transactionsReceived Transaction[] @relation("ReceiverTransactions")
+  issuedSender    IssuedCurrency[] @relation("Issuer")
+  issuedReceiver    IssuedCurrency[] @relation("Receiver")
+  resetPass           ResetToken[]
+  passwordStat        PasswordStatus[]
+  realBankAccounts    RealBankAccount[]
+  tempKYC             KYCTemp[]
+  user           AdminConn[]
+}
+
+model AdminConn {
+  id             Int       @id @default(autoincrement())
+  name           String?
+  userId         Int       @unique
+  accountId      Int
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  account        RealBankAccount        @relation(fields: [accountId], references: [id], onDelete: Cascade)
+}
+
+model KYCTemp {
+  id             Int      @id @default(autoincrement())
+  fullName       String
+  address        String
+  phoneNumber    String
+  idFile         String
+  bankStatement  String
+  accountNumber  String   @unique
+  bankName       String
+  userId         Int      @unique
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model RealBankAccount {
+  id             Int      @id @default(autoincrement())
+  accountNumber  String?  @unique
+  bankName       String?
+  balanceETB     Decimal  @default(100000.0)
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  userId         Int?     
+  user           User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  adminsBank     AdminConn[]
+}
+
+model Offer {
+  id             Int       @id @default(autoincrement())
+  amount         Float
+  interestRate   Float
+  durationToReturn Int
+  status         String
+  userId         Int
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  offered          Borrowed[]
+  user           User      @relation(fields: [userId], references: [id], onDelete: Cascade) 
+}
+
+model Borrowed {
+  id             Int       @id @default(autoincrement())
+  status         String
+  userId         Int?
+  offerId        Int?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  user           User?     @relation(fields: [userId], references: [id], onDelete: SetNull)
+  offer           Offer?     @relation(fields: [offerId], references: [id], onDelete: SetNull)
+}
+
+model Account {
+  id                 Int       @id @default(autoincrement())
+  publicKey          String
+  encryptedPrivateKey String
+  privateKeyIv       String
+  encryptedSeed      String
+  seedIv             String
+  xrpBalance         Float     @default(0.0)
+  issuedCurrencyBalance Float  @default(0.0)
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  userId             Int       @unique
+  user               User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Transaction {
+  id             Int       @id @default(autoincrement())
+  senderId       Int?      //add account XRP id
+  receiverId     Int?
+  amount         Float
+  transactionType String   // To hold the type of transaction (e.g., payment, offer create)
+  timestamp      DateTime  @default(now())
+  userSender     User?     @relation("SenderTransactions", fields: [senderId], references: [id], onDelete: SetNull)
+  userReceiver   User?     @relation("ReceiverTransactions", fields: [receiverId], references: [id], onDelete: SetNull)
+}
+
+model IssuedCurrency {
+  id             Int       @id @default(autoincrement())
+  issuerId       Int?
+  receiverId     Int?
+  currencyCode   String
+  maxAmount      Float
+  creationDate   DateTime  @default(now())
+  userIssuer     User?     @relation("Issuer", fields: [issuerId], references: [id], onDelete: SetNull)
+  userReceiver   User?     @relation("Receiver", fields: [receiverId], references: [id], onDelete: SetNull)
+}
+
+model PasswordStatus {
+  id            Int        @id @default(autoincrement())
+  isChanged     Boolean    @default(false)
+  userId        Int
+  userChanged   User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model ResetToken {
+  id     Int     @id @default(autoincrement())
+  token  String  @unique
+  expiry DateTime @default(now())
+  userId Int
+  user   User    @relation(fields: [userId], references: [id])
+}
