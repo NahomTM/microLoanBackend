@@ -20,7 +20,7 @@ const sendEmail = async (email, username, temporaryPassword) => {
     port: 587,
     secure: false,
     auth: {
-        user: "exopain2930@gmail.com",
+        user: "email_goes_here",
         pass: process.env.EMAIL_PASSWORD,
     },
     tls: {
