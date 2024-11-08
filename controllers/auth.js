@@ -10,7 +10,7 @@ const sendEmail = async (email, username, isApproved) => {
     port: 587,
     secure: false,
     auth: {
-        user: "exopain2930@gmail.com",
+        user: "email.here",
         pass: process.env.EMAIL_PASSWORD,
     },
     tls: {
